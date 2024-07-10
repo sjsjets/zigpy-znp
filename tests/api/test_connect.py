@@ -115,6 +115,27 @@ async def test_connect_skip_bootloader_rts_dtr_pins(make_znp_server, mocker):
     znp.close()
 
 
+async def test_connect_skip_bootloader_config(make_znp_server, mocker):
+    znp_server = make_znp_server(server_cls=BaseServerZNP)
+    znp = ZNP(config_for_port_path(znp_server.port_path))
+    znp._znp_config["skip_bootloader"] = False
+
+    mocker.patch.object(znp.nvram, "determine_alignment", new=CoroutineMock())
+    mocker.patch.object(znp, "detect_zstack_version", new=CoroutineMock())
+
+    znp_server.reply_to(
+        c.SYS.Ping.Req(), responses=[c.SYS.Ping.Rsp(Capabilities=t.MTCapabilities.SYS)]
+    )
+
+    await znp.connect(test_port=True)
+
+    serial = znp._uart._transport
+    assert serial._mock_dtr_prop.called is False
+    assert serial._mock_rts_prop.called is False
+
+    znp.close()
+
+
 async def test_api_close(connected_znp, mocker):
     znp, znp_server = connected_znp
     uart = znp._uart

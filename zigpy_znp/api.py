@@ -734,7 +734,12 @@ class ZNP:
             # prevent any data from being sent
             if test_port:
                 # The reset indication callback is sent when some sticks start up
-                self.capabilities = (await self._skip_bootloader()).Capabilities
+                if self._znp_config[conf.CONF_SKIP_BOOTLOADER]:
+                    self.capabilities = (await self._skip_bootloader()).Capabilities
+                else:
+                    self.capabilities = (
+                        await self.request(c.SYS.Ping.Req())
+                    ).Capabilities
 
                 # We need to know how structs are packed to deserialize frames correctly
                 await self.nvram.determine_alignment()
